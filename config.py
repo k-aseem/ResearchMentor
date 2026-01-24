@@ -15,6 +15,6 @@ CONFIG = {
     # Paths
     "vector_db_path": os.getenv("VECTOR_DB_PATH", "./chroma_db"),
 
-    # Thresholds
-    "gap_threshold": float(os.getenv("GAP_THRESHOLD", "0.4")),
+    # Thresholds (0 to 1, higher = stricter match required for Librarian mode)
+    "similarity_threshold": float(os.getenv("SIMILARITY_THRESHOLD", "0.55")),
 }
