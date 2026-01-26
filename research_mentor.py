@@ -1,5 +1,5 @@
 import os
-import sys
+import re
 from typing import Tuple, List
 
 # Load configuration
@@ -33,7 +33,7 @@ class ResearchMentorSystem:
         self.llm_dreamer = GoogleGenerativeAI(
             model=CONFIG["gemini_model"],
             google_api_key=CONFIG["gemini_api_key"],
-            temperature=1.0
+            temperature=1.2  # High randomness for creative hypothesis generation
         )
         self.llm_critic = GoogleGenerativeAI(
             model=CONFIG["gemini_model"],
@@ -182,52 +182,168 @@ class ResearchMentorSystem:
         prompt = f"Answer this question: {query}"
         return self.llm_baseline.invoke(prompt)
 
-    def run_librarian_mode(self, query: str, context: str) -> str:
-        """Standard RAG response"""
-        prompt = f"""You are an expert Research Librarian. Answer the user's query strictly based on the context below.
-If the answer is not in the context, admit it.
+    def run_librarian_mode(self, query: str, context: str) -> Tuple[str, str]:
+        """
+        The Librarian: RAG-based response with confidence assessment.
+        Returns: (answer, confidence) where confidence is HIGH, MEDIUM, or LOW
+        """
+        prompt = f"""You are an expert Research Librarian. Your job is to answer questions based ONLY on the provided context.
 
-Context: {context}
+CONTEXT:
+{context}
 
-User Query: {query}"""
-        return self.llm_librarian.invoke(prompt)
+QUESTION: {query}
+
+INSTRUCTIONS:
+1. Answer the question using ONLY information from the context above.
+2. After your answer, assess your confidence level:
+   - HIGH: The context directly and explicitly answers the question
+   - MEDIUM: The context partially answers the question or requires some inference
+   - LOW: The context does NOT contain information to answer this question
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+ANSWER: [Your answer here]
+
+CONFIDENCE: [HIGH/MEDIUM/LOW]
+REASON: [Brief explanation of why you assigned this confidence level]"""
+
+        response = self.llm_librarian.invoke(prompt)
+
+        # Parse confidence from response
+        confidence = self._parse_confidence(response)
+
+        return response, confidence
+
+    def _parse_confidence(self, response: str) -> str:
+        """Extract confidence level from Librarian response."""
+        response_upper = response.upper()
+
+        # Look for explicit confidence markers
+        if "CONFIDENCE: HIGH" in response_upper or "CONFIDENCE:HIGH" in response_upper:
+            return "HIGH"
+        elif "CONFIDENCE: MEDIUM" in response_upper or "CONFIDENCE:MEDIUM" in response_upper:
+            return "MEDIUM"
+        elif "CONFIDENCE: LOW" in response_upper or "CONFIDENCE:LOW" in response_upper:
+            return "LOW"
+
+        # Fallback: look for indicators of uncertainty in the text
+        uncertainty_phrases = [
+            "not in the context",
+            "no information",
+            "does not contain",
+            "doesn't contain",
+            "cannot find",
+            "not mentioned",
+            "not addressed",
+            "no direct answer",
+            "not explicitly",
+            "unable to find"
+        ]
+
+        response_lower = response.lower()
+        for phrase in uncertainty_phrases:
+            if phrase in response_lower:
+                return "LOW"
+
+        # Default to MEDIUM if we can't determine
+        return "MEDIUM"
 
     def run_dreamer_mode(self, query: str, context: str) -> str:
-        """The Dreamer: Generates novel hypotheses."""
-        prompt = f"""You are a visionary Principal Investigator (PI) in Machine Learning and AI.
-The user asked: "{query}"
+        """
+        The Dreamer: Generates novel hypotheses through "Productive Hallucination".
+        Uses high temperature (1.2) to encourage creative but grounded speculation.
+        """
+        prompt = f"""You are a visionary Principal Investigator (PI) mentoring a PhD student.
+Your role is to help bridge gaps in the literature by proposing novel, testable hypotheses.
 
-Our current literature (context below) does NOT contain a direct answer.
-Context: {context}
+THE RESEARCH QUESTION: "{query}"
 
-Your Task:
-1. Acknowledge the gap in the literature.
-2. Propose 2 NOVEL hypotheses or theoretical frameworks that might answer the question.
-3. Ground your hypotheses in scientific principles from the context where possible.
-4. Do NOT cite fake papers."""
-        print("   Dreaming up hypotheses (Temp=1.0)...")
+AVAILABLE LITERATURE (Your "Known Universe"):
+{context}
+
+YOUR TASK - PRODUCTIVE HALLUCINATION:
+The literature above does NOT directly answer the research question. Your job is to:
+
+1. ACKNOWLEDGE THE GAP: Briefly state what the literature covers and what's missing.
+
+2. PROPOSE 3 NOVEL HYPOTHESES that could bridge this gap:
+   - Each hypothesis should be grounded in concepts from the literature above
+   - You MAY speculate and make creative connections
+   - You MAY NOT cite fake papers or fabricate experimental results
+   - Each hypothesis should be specific enough to be testable
+
+3. For each hypothesis, explain:
+   - The core idea
+   - How it connects to the existing literature
+   - What experiment or analysis could test it
+
+FORMAT:
+## Gap Analysis
+[Your analysis of what's missing]
+
+## Hypothesis 1: [Title]
+[Description and grounding]
+
+## Hypothesis 2: [Title]
+[Description and grounding]
+
+## Hypothesis 3: [Title]
+[Description and grounding]"""
+        print("   Dreaming up hypotheses (Temp=1.2)...")
         return self.llm_dreamer.invoke(prompt)
 
-    def run_critic_mode(self, hypotheses: str) -> str:
-        """The Critic: Checks for feasibility."""
-        prompt = f"""You are "Reviewer #2" for a top-tier ML conference (NeurIPS/ICML).
-Evaluate the following hypotheses for scientific validity and feasibility.
+    def run_critic_mode(self, hypotheses: str, context: str) -> str:
+        """
+        The Critic: Verifies feasibility of proposed hypotheses.
+        Uses temperature=0 for strict logical analysis.
+        Does NOT check if hypothesis is TRUE (it's novel), but if it is VALID.
+        """
+        prompt = f"""You are "Reviewer #2" - a rigorous but fair scientific reviewer.
+Your job is NOT to check if these hypotheses are true (they are novel ideas), but whether they are VALID.
 
-Hypotheses:
+PROPOSED HYPOTHESES:
 {hypotheses}
 
-Your Task:
-1. Identify any logical fallacies, unsupported claims, or technical impossibilities.
-2. Assign a "Feasibility Score" (0-10) to each hypothesis.
-3. Provide a harsh but constructive critique.
-4. If the hypotheses are completely off-topic or nonsensical, give a score of 0."""
+DOMAIN KNOWLEDGE (from the literature):
+{context}
+
+YOUR REVIEW CRITERIA:
+
+1. LOGICAL CONSISTENCY (Does the hypothesis contradict itself?)
+   - Are the claims internally consistent?
+   - Does the reasoning follow logically?
+
+2. DOMAIN CONSTRAINTS (Does it violate known facts from the literature?)
+   - Does it contradict established findings in the context?
+   - Does it make physically/mathematically impossible claims?
+
+3. TESTABILITY (Could this be experimentally verified?)
+   - Is the hypothesis specific enough to test?
+   - Are the proposed experiments realistic?
+
+FOR EACH HYPOTHESIS, PROVIDE:
+
+## Hypothesis [N] Review
+- **Feasibility Score: X/10**
+- **Logical Consistency:** [Pass/Fail with explanation]
+- **Domain Constraints:** [Pass/Fail with explanation]
+- **Testability:** [High/Medium/Low with explanation]
+- **Key Strengths:** [What's promising about this idea]
+- **Key Weaknesses:** [What are the concerns]
+- **Verdict:** [Promising / Needs Work / Not Recommended]
+
+## Overall Recommendation
+[Which hypothesis is most promising and why]"""
         print("   Critiquing hypotheses (Temp=0)...")
         return self.llm_critic.invoke(prompt)
 
     def process_query(self, query: str, include_baseline: bool = True):
         """
         Process a query through the Research Mentor system.
-        Optionally includes baseline comparison for evaluation.
+
+        Two-stage gap detection:
+        1. Similarity threshold for initial filtering (is query even related?)
+        2. Librarian confidence for semantic gap detection (does context answer the question?)
         """
         print(f"\n{'='*70}")
         print(f"QUERY: '{query}'")
@@ -243,34 +359,43 @@ Your Task:
         context, similarity = self.retrieve_context(query)
         print(f"\n[RESEARCH MENTOR] Similarity Score: {similarity:.4f} (Threshold: {SIMILARITY_THRESHOLD})")
 
-        # 2. GAP DETECTION
-        if similarity >= SIMILARITY_THRESHOLD:
-            print("[RESEARCH MENTOR] Mode: LIBRARIAN (Knowledge Found)")
-            response = self.run_librarian_mode(query, context)
-
-            print("\n" + "-"*70)
-            print("LIBRARIAN RESPONSE:")
-            print("-"*70)
-            print(response)
-
-        else:
+        # 2. TWO-STAGE GAP DETECTION
+        if similarity < SIMILARITY_THRESHOLD:
+            # Stage 1: Low similarity = clearly unrelated topic
+            print("[RESEARCH MENTOR] Stage 1: Low similarity - Topic not in knowledge base")
             print("[RESEARCH MENTOR] Mode: RESEARCH MENTOR (Gap Detected)")
+            self._run_research_mentor_pipeline(query, context)
+        else:
+            # Stage 2: High similarity, but does the context actually answer the question?
+            print("[RESEARCH MENTOR] Stage 1: Similarity OK - Checking if context answers the question...")
+            librarian_response, confidence = self.run_librarian_mode(query, context)
+            print(f"[RESEARCH MENTOR] Stage 2: Librarian Confidence: {confidence}")
 
-            # 3. DREAM
-            hypotheses = self.run_dreamer_mode(query, context)
+            if confidence == "HIGH":
+                # Context directly answers the question
+                print("[RESEARCH MENTOR] Mode: LIBRARIAN (Direct Answer Found)")
+                print("\n" + "-"*70)
+                print("LIBRARIAN RESPONSE:")
+                print("-"*70)
+                print(librarian_response)
 
-            # 4. CRITIQUE
-            critique = self.run_critic_mode(hypotheses)
+            elif confidence == "MEDIUM":
+                # Context partially answers - show Librarian response but note uncertainty
+                print("[RESEARCH MENTOR] Mode: LIBRARIAN (Partial Answer - Medium Confidence)")
+                print("\n" + "-"*70)
+                print("LIBRARIAN RESPONSE (Medium Confidence):")
+                print("-"*70)
+                print(librarian_response)
 
-            print("\n" + "-"*70)
-            print("PROPOSED HYPOTHESES (Dreamer):")
-            print("-"*70)
-            print(hypotheses)
-
-            print("\n" + "-"*70)
-            print("REVIEWER CRITIQUE (Critic):")
-            print("-"*70)
-            print(critique)
+            else:  # LOW confidence
+                # Context is related but doesn't answer the question = GAP
+                print("[RESEARCH MENTOR] Mode: RESEARCH MENTOR (Gap Detected - Context doesn't answer question)")
+                print("\n" + "-"*70)
+                print("LIBRARIAN ASSESSMENT:")
+                print("-"*70)
+                print(librarian_response)
+                print("\n[RESEARCH MENTOR] Librarian found no direct answer. Switching to hypothesis generation...")
+                self._run_research_mentor_pipeline(query, context)
 
         # Show baseline comparison
         if include_baseline and baseline_response:
@@ -278,6 +403,32 @@ Your Task:
             print("BASELINE COMPARISON (Standard LLM, no RAG/special prompting):")
             print("-"*70)
             print(baseline_response)
+
+    def _run_research_mentor_pipeline(self, query: str, context: str):
+        """
+        Run the Dreamer -> Critic pipeline for gap/hallucination cases.
+        This is the core "Research Mentor Protocol" for productive hallucination.
+        """
+        # Phase 2a: THE DREAMER - Generate novel hypotheses
+        hypotheses = self.run_dreamer_mode(query, context)
+
+        # Phase 2b: THE CRITIC - Verify feasibility
+        critique = self.run_critic_mode(hypotheses, context)
+
+        # Phase 3: FINAL OUTPUT - Structured presentation
+        print("\n" + "="*70)
+        print("RESEARCH MENTOR OUTPUT")
+        print("="*70)
+
+        print("\n" + "-"*70)
+        print("PROPOSED HYPOTHESES (The Dreamer - Temp=1.2)")
+        print("-"*70)
+        print(hypotheses)
+
+        print("\n" + "-"*70)
+        print("FEASIBILITY REVIEW (The Critic - Temp=0)")
+        print("-"*70)
+        print(critique)
 
 
 # --- MAIN EXECUTION ---
@@ -289,7 +440,7 @@ if __name__ == "__main__":
 
     # TEST CASE 1: The "Known" Test
     # Question about something explicitly stated in the paper
-    # Expected: Librarian Mode with factual answer from the knowledge base
+    # Expected: Librarian with HIGH confidence
     print("\n\n" + "="*70)
     print("TEST CASE 1: KNOWN TEST")
     print("="*70)
@@ -299,18 +450,19 @@ if __name__ == "__main__":
 
     # TEST CASE 2: The "Gap" Test
     # Question combining two concepts from the paper that aren't explicitly linked
-    # The paper discusses LoRA and RAG separately, but not together
-    # Expected: Research Mentor Mode with hypotheses about combining them
+    # The paper discusses Chain-of-Thought (Section 5) and Quantization (Section 3) separately
+    # but never mentions using CoT to recover accuracy lost from quantization
+    # Expected: Librarian with LOW confidence -> Research Mentor Mode
     print("\n\n" + "="*70)
     print("TEST CASE 2: GAP TEST")
     print("="*70)
     mentor.process_query(
-        "Could LoRA fine-tuning be combined with RAG to reduce both hallucinations and training cost?"
+        "Can chain-of-thought prompting help recover the 12% accuracy loss from 4-bit quantization?"
     )
 
     # TEST CASE 3: The "Hallucination" Test
     # Question about something completely absent from the knowledge base
-    # Expected: Research Mentor Mode, Critic should give very low feasibility scores
+    # Expected: Low similarity -> Research Mentor Mode directly
     print("\n\n" + "="*70)
     print("TEST CASE 3: HALLUCINATION TEST")
     print("="*70)
