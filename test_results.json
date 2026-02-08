@@ -1,0 +1,104 @@
+{
+  "known": [
+    {
+      "test_id": "known_001",
+      "query": "How much does LoRA reduce parameter updates compared to full fine-tuning?",
+      "expected_mode": "librarian",
+      "actual_mode": "librarian",
+      "mode_correct": true,
+      "similarity": 0.6068776361326176,
+      "confidence": "HIGH",
+      "judge_winner": "tie",
+      "judge_score_baseline": 5,
+      "judge_score_rm": 5,
+      "judge_reasoning": "Response A provides a detailed explanation of how LoRA reduces parameter updates compared to full fine-tuning, including a breakdown of the calculations and key takeaways. Response B is too concise and lacks the depth and context needed for a PhD student's research. Response A is much more useful, accurate, and actionable for the student's research. Response B also makes a claim about 50x reduction in computational cost, which is not necessarily true in all cases.",
+      "elapsed_time": 8.021335124969482,
+      "status": "success",
+      "error": null
+    },
+    {
+      "test_id": "known_002",
+      "query": "What percentage of full fine-tuning performance does LoRA achieve?",
+      "expected_mode": "librarian",
+      "actual_mode": "librarian",
+      "mode_correct": true,
+      "similarity": 0.5933770397272078,
+      "confidence": "HIGH",
+      "judge_winner": "tie",
+      "judge_score_baseline": 5,
+      "judge_score_rm": 5,
+      "judge_reasoning": "Response A is more useful because it provides a range of performance values and acknowledges the factors that influence LoRA's effectiveness. Response B provides a single, seemingly definitive answer without any context or source, making it less helpful for research purposes.",
+      "elapsed_time": 4.452946186065674,
+      "status": "success",
+      "error": null
+    }
+  ],
+  "gap": [
+    {
+      "test_id": "gap_001",
+      "query": "Can chain-of-thought prompting help recover the 12% accuracy loss from 4-bit quantization?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.5638918137554892,
+      "confidence": "LOW",
+      "judge_winner": "tie",
+      "judge_score_baseline": 5,
+      "judge_score_rm": 5,
+      "judge_reasoning": "Response B is much better because it directly addresses the research question as a gap in the literature and proposes a testable hypothesis with a concrete experimental design. Response A is a more general discussion of CoT and quantization, but it doesn't provide the same level of actionable guidance for the student's research. B is more helpful for a PhD student.",
+      "elapsed_time": 21.30066204071045,
+      "status": "success",
+      "error": null
+    },
+    {
+      "test_id": "gap_002",
+      "query": "Would LoRA fine-tuning improve RAG retrieval quality?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.5540909231121139,
+      "confidence": "LOW",
+      "judge_winner": "tie",
+      "judge_score_baseline": 5,
+      "judge_score_rm": 5,
+      "judge_reasoning": "Response B is much better because it identifies the gap in the literature and proposes concrete, testable hypotheses. Response A provides a general overview of how LoRA *could* help, but it doesn't offer the same level of actionable research guidance. Response B is more useful for a PhD student. Response A also hallucinates that LoRA can address data skews. LoRA is a fine-tuning method, not a data balancing method. Response B is also better written. Response A has a lot of conversational filler.",
+      "elapsed_time": 23.84750485420227,
+      "status": "success",
+      "error": null
+    }
+  ],
+  "hallucination": [
+    {
+      "test_id": "halluc_001",
+      "query": "What is the best way to grow tomatoes in a greenhouse?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.3687048041900958,
+      "confidence": "N/A (low similarity)",
+      "judge_winner": "tie",
+      "judge_score_baseline": 5,
+      "judge_score_rm": 5,
+      "judge_reasoning": "Response A directly answers the research question with practical advice and actionable steps for growing tomatoes in a greenhouse. Response B, while attempting to be novel, completely misses the mark by focusing on LLM fine-tuning, which is irrelevant to the initial question about tomato cultivation.",
+      "elapsed_time": 26.033808708190918,
+      "status": "success",
+      "error": null
+    },
+    {
+      "test_id": "halluc_002",
+      "query": "How do bees communicate the location of flowers?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.35323857725746377,
+      "confidence": "N/A (low similarity)",
+      "judge_winner": "tie",
+      "judge_score_baseline": 5,
+      "judge_score_rm": 5,
+      "judge_reasoning": "Response A provides a good overview of bee communication, but Response B is more useful for a PhD student. Response B frames the question in a novel way, drawing parallels to LLMs and proposing testable hypotheses, which is more valuable for research.",
+      "elapsed_time": 24.72322416305542,
+      "status": "success",
+      "error": null
+    }
+  ]
+}

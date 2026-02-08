@@ -1,0 +1,104 @@
+{
+  "known": [
+    {
+      "test_id": "known_001",
+      "query": "How much does LoRA reduce parameter updates compared to full fine-tuning?",
+      "expected_mode": "librarian",
+      "actual_mode": "librarian",
+      "mode_correct": true,
+      "similarity": 0.6068776361326176,
+      "confidence": "HIGH",
+      "judge_winner": "baseline",
+      "judge_score_baseline": 9,
+      "judge_score_rm": 3,
+      "judge_reasoning": "Response A provides a detailed explanation with examples, making it more useful for a PhD student. Response B is too brief and lacks the necessary context and calculations to be helpful.",
+      "elapsed_time": 8.755675077438354,
+      "status": "success",
+      "error": null
+    },
+    {
+      "test_id": "known_002",
+      "query": "What percentage of full fine-tuning performance does LoRA achieve?",
+      "expected_mode": "librarian",
+      "actual_mode": "librarian",
+      "mode_correct": true,
+      "similarity": 0.5933770397272078,
+      "confidence": "HIGH",
+      "judge_winner": "baseline",
+      "judge_score_baseline": 7,
+      "judge_score_rm": 3,
+      "judge_reasoning": "Response A is more realistic and helpful. Response B is too confident and doesn't provide enough context. The percentage is highly variable.",
+      "elapsed_time": 3.8945698738098145,
+      "status": "success",
+      "error": null
+    }
+  ],
+  "gap": [
+    {
+      "test_id": "gap_001",
+      "query": "Can chain-of-thought prompting help recover the 12% accuracy loss from 4-bit quantization?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.5638918137554892,
+      "confidence": "LOW",
+      "judge_winner": "research_mentor",
+      "judge_score_baseline": 7,
+      "judge_score_rm": 9,
+      "judge_reasoning": "Response B is much better because it identifies the research gap and proposes a concrete, testable hypothesis with an experimental design. Response A is a generic discussion of CoT prompting.",
+      "elapsed_time": 21.437841176986694,
+      "status": "success",
+      "error": null
+    },
+    {
+      "test_id": "gap_002",
+      "query": "Would LoRA fine-tuning improve RAG retrieval quality?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.5540909231121139,
+      "confidence": "LOW",
+      "judge_winner": "research_mentor",
+      "judge_score_baseline": 7,
+      "judge_score_rm": 9,
+      "judge_reasoning": "Response B is much more helpful for a PhD student. It identifies a gap in the literature and proposes concrete, testable hypotheses with detailed experimental setups. Response A is a more generic overview of LoRA and RAG.",
+      "elapsed_time": 24.139112949371338,
+      "status": "success",
+      "error": null
+    }
+  ],
+  "hallucination": [
+    {
+      "test_id": "halluc_001",
+      "query": "What is the best way to grow tomatoes in a greenhouse?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.3687048041900958,
+      "confidence": "N/A (low similarity)",
+      "judge_winner": "research_mentor",
+      "judge_score_baseline": 7,
+      "judge_score_rm": 9,
+      "judge_reasoning": "Response B is much more useful for a PhD student. It identifies a gap in the literature and proposes novel, testable hypotheses grounded in an analogy to LLMs. Response A is a standard, well-written guide, but it doesn't offer anything new or particularly insightful for research.",
+      "elapsed_time": 23.49575185775757,
+      "status": "success",
+      "error": null
+    },
+    {
+      "test_id": "halluc_002",
+      "query": "How do bees communicate the location of flowers?",
+      "expected_mode": "research_mentor",
+      "actual_mode": "research_mentor",
+      "mode_correct": true,
+      "similarity": 0.35323857725746377,
+      "confidence": "N/A (low similarity)",
+      "judge_winner": "baseline",
+      "judge_score_baseline": 9,
+      "judge_score_rm": 2,
+      "judge_reasoning": "Response A is a clear, accurate, and concise explanation of bee communication. Response B is a bizarre and unhelpful analogy to LLMs, completely missing the point of the research question and failing to provide any useful information about bee behavior.",
+      "elapsed_time": 22.869499921798706,
+      "status": "success",
+      "error": null
+    }
+  ]
+}

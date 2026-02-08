@@ -1,0 +1,50 @@
+======================================================================
+RESEARCH MENTOR TEST REPORT
+Generated: 2026-02-08 15:06:54
+======================================================================
+
+## KNOWN TESTS
+--------------------------------------------------
+Total Tests: 3
+Mode Detection Accuracy: 3/3 (100.0%)
+Judge Results:
+  - Research Mentor Wins: 0
+  - Baseline Wins: 3
+  - Ties: 0
+Average Scores:
+  - Research Mentor: 2.67/10
+  - Baseline: 8.67/10
+
+## GAP TESTS
+--------------------------------------------------
+Total Tests: 3
+Mode Detection Accuracy: 3/3 (100.0%)
+Judge Results:
+  - Research Mentor Wins: 3
+  - Baseline Wins: 0
+  - Ties: 0
+Average Scores:
+  - Research Mentor: 9.00/10
+  - Baseline: 7.00/10
+
+## HALLUCINATION TESTS
+--------------------------------------------------
+Total Tests: 3
+Mode Detection Accuracy: 3/3 (100.0%)
+Judge Results:
+  - Research Mentor Wins: 1
+  - Baseline Wins: 2
+  - Ties: 0
+Average Scores:
+  - Research Mentor: 5.67/10
+  - Baseline: 7.67/10
+
+======================================================================
+OVERALL SUMMARY
+======================================================================
+Total Tests Run: 9
+Mode Detection Accuracy: 9/9 (100.0%)
+Judge Results:
+  - Research Mentor Wins: 4 (44.4%)
+  - Baseline Wins: 5 (55.6%)
+  - Ties: 0 (0.0%)
