@@ -46,6 +46,12 @@ class ResearchMentorSystem:
             google_api_key=CONFIG["gemini_api_key"],
             temperature=0.7
         )
+        # Judge LLM for comparing outputs (temperature=0 for consistent evaluation)
+        self.llm_judge = GoogleGenerativeAI(
+            model=CONFIG["gemini_model"],
+            google_api_key=CONFIG["gemini_api_key"],
+            temperature=0
+        )
 
     def ingest_documents(self, pdf_paths: List[str]):
         """Loads PDFs, splits them, and creates the Vector DB."""
@@ -187,7 +193,7 @@ class ResearchMentorSystem:
         The Librarian: RAG-based response with confidence assessment.
         Returns: (answer, confidence) where confidence is HIGH, MEDIUM, or LOW
         """
-        prompt = f"""You are an expert Research Librarian. Your job is to answer questions based ONLY on the provided context.
+        prompt = f"""You are an expert Research Librarian helping a PhD student. Your job is to answer questions based ONLY on the provided context, but in a thorough and research-useful way.
 
 CONTEXT:
 {context}
@@ -196,13 +202,19 @@ QUESTION: {query}
 
 INSTRUCTIONS:
 1. Answer the question using ONLY information from the context above.
-2. After your answer, assess your confidence level:
+2. Provide a detailed, well-structured answer that would be useful for a researcher:
+   - State the key finding or fact clearly
+   - Include specific numbers, percentages, or metrics from the context
+   - Explain the significance or implications of the finding
+   - Mention any related tradeoffs, limitations, or caveats from the context
+   - Reference which part of the literature the information comes from
+3. After your answer, assess your confidence level:
    - HIGH: The context directly and explicitly answers the question
    - MEDIUM: The context partially answers the question or requires some inference
    - LOW: The context does NOT contain information to answer this question
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
-ANSWER: [Your answer here]
+ANSWER: [Your detailed answer here - aim for 3-5 sentences that would be useful in a research context]
 
 CONFIDENCE: [HIGH/MEDIUM/LOW]
 REASON: [Brief explanation of why you assigned this confidence level]"""
@@ -404,10 +416,11 @@ FOR EACH HYPOTHESIS, PROVIDE:
             print("-"*70)
             print(baseline_response)
 
-    def _run_research_mentor_pipeline(self, query: str, context: str):
+    def _run_research_mentor_pipeline(self, query: str, context: str) -> Tuple[str, str]:
         """
         Run the Dreamer -> Critic pipeline for gap/hallucination cases.
         This is the core "Research Mentor Protocol" for productive hallucination.
+        Returns: (hypotheses, critique) for use in evaluation
         """
         # Phase 2a: THE DREAMER - Generate novel hypotheses
         hypotheses = self.run_dreamer_mode(query, context)
@@ -429,6 +442,183 @@ FOR EACH HYPOTHESIS, PROVIDE:
         print("FEASIBILITY REVIEW (The Critic - Temp=0)")
         print("-"*70)
         print(critique)
+
+        return hypotheses, critique
+
+    def run_judge(self, query: str, baseline_response: str, rm_response: str, mode: str) -> dict:
+        """
+        The Judge: Compares Baseline LLM output vs Research Mentor output.
+        Determines which response is more helpful for a PhD student/researcher.
+
+        Returns a dict with:
+        - winner: "baseline" | "research_mentor" | "tie"
+        - score_baseline: 1-10
+        - score_rm: 1-10
+        - reasoning: explanation
+        """
+        prompt = f"""You are an impartial judge evaluating two AI responses for a PhD student doing research.
+
+You MUST respond in EXACTLY this format with these four lines. Do not add any text before or after:
+
+SCORE_A: [integer from 1 to 10]
+SCORE_B: [integer from 1 to 10]
+WINNER: [exactly A, B, or TIE]
+REASONING: [2-3 sentences explaining your decision]
+
+RESEARCH QUESTION: "{query}"
+
+RESPONSE A (Baseline LLM - Standard ChatGPT-like response):
+{baseline_response[:3000]}
+
+RESPONSE B (Research Mentor System - {mode}):
+{rm_response[:3000]}
+
+EVALUATION CRITERIA:
+1. Usefulness for Research - Does it help advance the student's research?
+2. Accuracy - Is the information factually correct (or appropriately speculative)?
+3. Actionability - Does it provide concrete next steps or testable ideas?
+4. Grounding - Is it grounded in relevant literature/context?
+5. Novelty (for gap questions) - Does it propose interesting new directions?
+
+CONTEXT FOR JUDGING:
+- For KNOWN questions: Better response should be concise, accurate, and cite the source
+- For GAP questions: Better response should propose novel, testable hypotheses
+- For HALLUCINATION questions: Better response should acknowledge limitations or find creative connections
+
+Remember: You MUST start your response with "SCORE_A:" and follow the exact four-line format above."""
+
+        response = self.llm_judge.invoke(prompt)
+
+        # Parse the judge's response
+        result = self._parse_judge_response(response)
+        return result
+
+    def _parse_judge_response(self, response: str) -> dict:
+        """Parse the Judge's response into structured output."""
+        result = {
+            "winner": "tie",
+            "score_baseline": 5,
+            "score_rm": 5,
+            "reasoning": response,
+            "raw_response": response
+        }
+
+        response_upper = response.upper()
+
+        # Parse scores - try multiple patterns
+        score_a_match = re.search(r'SCORE_A\s*[:=]\s*(\d+)', response_upper)
+        score_b_match = re.search(r'SCORE_B\s*[:=]\s*(\d+)', response_upper)
+
+        if score_a_match:
+            result["score_baseline"] = min(int(score_a_match.group(1)), 10)
+        if score_b_match:
+            result["score_rm"] = min(int(score_b_match.group(1)), 10)
+
+        # Parse winner - try explicit marker first
+        winner_match = re.search(r'WINNER\s*[:=]\s*(A|B|TIE)', response_upper)
+        if winner_match:
+            w = winner_match.group(1)
+            if w == "A":
+                result["winner"] = "baseline"
+            elif w == "B":
+                result["winner"] = "research_mentor"
+            else:
+                result["winner"] = "tie"
+        elif score_a_match and score_b_match:
+            # Fallback: infer winner from scores if markers not found
+            sa = result["score_baseline"]
+            sb = result["score_rm"]
+            if sa > sb:
+                result["winner"] = "baseline"
+            elif sb > sa:
+                result["winner"] = "research_mentor"
+            else:
+                result["winner"] = "tie"
+        else:
+            # Last resort: infer from reasoning text
+            response_lower = response.lower()
+            b_better_phrases = ["response b is better", "response b is much better",
+                                "b is more useful", "b is better", "b wins",
+                                "response b provides better", "b is more helpful"]
+            a_better_phrases = ["response a is better", "response a is much better",
+                                "a is more useful", "a is better", "a wins",
+                                "response a provides better", "a is more helpful"]
+            for phrase in b_better_phrases:
+                if phrase in response_lower:
+                    result["winner"] = "research_mentor"
+                    break
+            else:
+                for phrase in a_better_phrases:
+                    if phrase in response_lower:
+                        result["winner"] = "baseline"
+                        break
+
+        # Extract reasoning
+        reasoning_match = re.search(r'REASONING:\s*(.+)', response, re.IGNORECASE | re.DOTALL)
+        if reasoning_match:
+            result["reasoning"] = reasoning_match.group(1).strip()[:500]
+
+        return result
+
+    def process_query_for_eval(self, query: str) -> dict:
+        """
+        Process a query and return structured results for evaluation.
+        Used by the test runner.
+
+        Returns a dict with all relevant data for analysis.
+        """
+        results = {
+            "query": query,
+            "similarity": 0.0,
+            "mode": None,
+            "confidence": None,
+            "baseline_response": None,
+            "rm_response": None,
+            "hypotheses": None,
+            "critique": None,
+            "judge_result": None
+        }
+
+        # Get baseline response
+        results["baseline_response"] = self.get_baseline_response(query)
+
+        # Retrieve context
+        context, similarity = self.retrieve_context(query)
+        results["similarity"] = similarity
+
+        # Two-stage gap detection
+        if similarity < SIMILARITY_THRESHOLD:
+            results["mode"] = "research_mentor"
+            results["confidence"] = "N/A (low similarity)"
+            hypotheses = self.run_dreamer_mode(query, context)
+            critique = self.run_critic_mode(hypotheses, context)
+            results["hypotheses"] = hypotheses
+            results["critique"] = critique
+            results["rm_response"] = f"HYPOTHESES:\n{hypotheses}\n\nCRITIQUE:\n{critique}"
+        else:
+            librarian_response, confidence = self.run_librarian_mode(query, context)
+            results["confidence"] = confidence
+
+            if confidence in ["HIGH", "MEDIUM"]:
+                results["mode"] = "librarian"
+                results["rm_response"] = librarian_response
+            else:  # LOW confidence
+                results["mode"] = "research_mentor"
+                hypotheses = self.run_dreamer_mode(query, context)
+                critique = self.run_critic_mode(hypotheses, context)
+                results["hypotheses"] = hypotheses
+                results["critique"] = critique
+                results["rm_response"] = f"LIBRARIAN ASSESSMENT:\n{librarian_response}\n\nHYPOTHESES:\n{hypotheses}\n\nCRITIQUE:\n{critique}"
+
+        # Run Judge comparison
+        results["judge_result"] = self.run_judge(
+            query,
+            results["baseline_response"],
+            results["rm_response"],
+            results["mode"]
+        )
+
+        return results
 
 
 # --- MAIN EXECUTION ---
