@@ -21,260 +21,264 @@ Each test case has:
 # =============================================================================
 
 KNOWN_TESTS = [
-    # --- LoRA / Fine-tuning (Section 2) ---
+    # --- LoRA (Hu et al., 2021) ---
     {
         "id": "known_001",
-        "query": "How much does LoRA reduce parameter updates compared to full fine-tuning?",
+        "query": "How much does LoRA reduce the number of trainable parameters compared to full fine-tuning?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["0.1%", "parameters"],
-        "description": "Direct fact about LoRA parameter efficiency",
+        "expected_answer_contains": ["10,000", "10000"],
+        "description": "LoRA reduces trainable parameters by 10,000x vs GPT-3 175B",
         "tags": ["lora", "fine-tuning", "exact-number"]
     },
     {
         "id": "known_002",
-        "query": "What percentage of full fine-tuning performance does LoRA achieve?",
+        "query": "How much does LoRA reduce GPU memory requirements?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["97%"],
-        "description": "LoRA performance relative to full fine-tuning",
-        "tags": ["lora", "fine-tuning", "exact-number"]
+        "expected_answer_contains": ["3", "VRAM"],
+        "description": "LoRA reduces GPU memory by up to 2/3 (3x reduction)",
+        "tags": ["lora", "fine-tuning", "memory"]
     },
     {
         "id": "known_003",
-        "query": "How much more expensive is full fine-tuning compared to LoRA?",
+        "query": "Does LoRA introduce additional inference latency compared to full fine-tuning?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["50x", "50 times"],
-        "description": "Cost comparison between fine-tuning methods",
-        "tags": ["lora", "fine-tuning", "cost"]
+        "expected_answer_contains": ["no additional", "no inference latency"],
+        "description": "LoRA adds no inference latency by merging weights",
+        "tags": ["lora", "inference", "latency"]
     },
     {
         "id": "known_004",
-        "query": "What are the three fine-tuning approaches mentioned in the research?",
+        "query": "What models was LoRA evaluated on?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["LoRA", "full fine-tuning", "prefix tuning"],
-        "description": "Enumeration of fine-tuning methods",
-        "tags": ["fine-tuning", "enumeration"]
+        "expected_answer_contains": ["RoBERTa", "GPT"],
+        "description": "LoRA tested on RoBERTa, DeBERTa, GPT-2, GPT-3",
+        "tags": ["lora", "evaluation"]
     },
     {
         "id": "known_005",
-        "query": "What tasks did prefix tuning struggle with?",
+        "query": "How much does LoRA reduce the checkpoint size for GPT-3 175B?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["complex reasoning"],
-        "description": "Prefix tuning limitations",
-        "tags": ["prefix-tuning", "limitations"]
+        "expected_answer_contains": ["10,000", "350GB", "35MB"],
+        "description": "Checkpoint reduced ~10,000x from 350GB to 35MB",
+        "tags": ["lora", "storage", "exact-number"]
     },
 
-    # --- Quantization (Section 3) ---
+    # --- QLoRA (Dettmers et al., 2023) ---
     {
         "id": "known_006",
-        "query": "What accuracy does 8-bit quantization maintain compared to the original model?",
+        "query": "What size GPU can QLoRA use to finetune a 65B parameter model?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["99%"],
-        "description": "8-bit quantization accuracy retention",
-        "tags": ["quantization", "8-bit", "exact-number"]
+        "expected_answer_contains": ["48GB", "single"],
+        "description": "QLoRA finetunes 65B on a single 48GB GPU",
+        "tags": ["qlora", "hardware", "exact-number"]
     },
     {
         "id": "known_007",
-        "query": "How much memory reduction does 8-bit quantization provide?",
+        "query": "What percentage of ChatGPT's performance does Guanaco achieve on the Vicuna benchmark?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["75%"],
-        "description": "8-bit quantization memory savings",
-        "tags": ["quantization", "8-bit", "memory"]
+        "expected_answer_contains": ["99.3%", "99.3"],
+        "description": "Guanaco reaches 99.3% of ChatGPT performance",
+        "tags": ["qlora", "guanaco", "exact-number"]
     },
     {
         "id": "known_008",
-        "query": "What is the accuracy degradation from 4-bit quantization?",
+        "query": "What are the three key innovations introduced in QLoRA?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["12%"],
-        "description": "4-bit quantization accuracy loss",
-        "tags": ["quantization", "4-bit", "exact-number"]
+        "expected_answer_contains": ["NormalFloat", "Double Quantization", "Paged Optimizers"],
+        "description": "QLoRA introduces NF4, Double Quantization, Paged Optimizers",
+        "tags": ["qlora", "innovations", "enumeration"]
     },
     {
         "id": "known_009",
-        "query": "What size GPU can run 70B parameter models with 4-bit quantization?",
+        "query": "How much GPU memory does regular 16-bit finetuning of a LLaMA 65B model require?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["24GB", "consumer"],
-        "description": "Hardware requirements for quantized models",
-        "tags": ["quantization", "4-bit", "hardware"]
-    },
-    {
-        "id": "known_010",
-        "query": "What technique can recover accuracy lost from 4-bit quantization?",
-        "expected_mode": "librarian",
-        "expected_answer_contains": ["quantization-aware training"],
-        "description": "Technique to mitigate quantization loss",
-        "tags": ["quantization", "training"]
+        "expected_answer_contains": ["780", "GB"],
+        "description": "Regular 16-bit finetuning requires >780 GB",
+        "tags": ["qlora", "memory", "exact-number"]
     },
 
-    # --- RAG (Section 4) ---
+    # --- LLM.int8() (Dettmers et al., 2022) ---
+    {
+        "id": "known_010",
+        "query": "How much does LLM.int8() reduce the memory needed for inference?",
+        "expected_mode": "librarian",
+        "expected_answer_contains": ["half", "50%"],
+        "description": "LLM.int8() cuts inference memory by half",
+        "tags": ["quantization", "8-bit", "memory"]
+    },
     {
         "id": "known_011",
-        "query": "By how much does RAG reduce hallucination rates?",
+        "query": "What percentage of values are multiplied in 8-bit in the LLM.int8() method?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["67%"],
-        "description": "RAG hallucination reduction",
-        "tags": ["rag", "hallucination", "exact-number"]
+        "expected_answer_contains": ["99.9%", "99.9"],
+        "description": "99.9% of values use 8-bit multiplication",
+        "tags": ["quantization", "8-bit", "exact-number"]
     },
     {
         "id": "known_012",
-        "query": "How much latency does RAG add per query?",
+        "query": "At what model scale do outlier features emerge that break standard quantization?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["340ms", "340 ms"],
-        "description": "RAG latency overhead",
-        "tags": ["rag", "latency", "exact-number"]
-    },
-    {
-        "id": "known_013",
-        "query": "How much better do dense embeddings perform compared to BM25 for RAG?",
-        "expected_mode": "librarian",
-        "expected_answer_contains": ["23%"],
-        "description": "Embedding vs keyword search comparison",
-        "tags": ["rag", "embeddings", "exact-number"]
+        "expected_answer_contains": ["6.7B", "6.7 billion"],
+        "description": "Outlier features emerge at 6.7B parameter scale",
+        "tags": ["quantization", "outliers", "exact-number"]
     },
 
-    # --- Chain-of-Thought (Section 5) ---
+    # --- GPTQ (Frantar et al., 2022) ---
+    {
+        "id": "known_013",
+        "query": "How long does GPTQ take to quantize a 175 billion parameter model?",
+        "expected_mode": "librarian",
+        "expected_answer_contains": ["4", "GPU hours", "four"],
+        "description": "GPTQ quantizes 175B models in ~4 GPU hours",
+        "tags": ["gptq", "quantization", "exact-number"]
+    },
     {
         "id": "known_014",
-        "query": "How much does chain-of-thought prompting improve math word problem accuracy?",
+        "query": "How many bits per weight does GPTQ compress models to?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["58%", "83%"],
-        "description": "CoT improvement on math problems",
-        "tags": ["cot", "math", "exact-number"]
+        "expected_answer_contains": ["3", "4", "bits"],
+        "description": "GPTQ compresses to 3-4 bits per weight",
+        "tags": ["gptq", "quantization", "compression"]
     },
     {
         "id": "known_015",
-        "query": "How much does CoT prompting increase token usage?",
+        "query": "What inference speedup does GPTQ achieve on an NVIDIA A100 GPU?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["3x", "three times"],
-        "description": "CoT token overhead",
-        "tags": ["cot", "tokens", "cost"]
+        "expected_answer_contains": ["3.25", "3.25x"],
+        "description": "GPTQ achieves 3.25x speedup on A100",
+        "tags": ["gptq", "speedup", "exact-number"]
     },
+
+    # --- RAG (Lewis et al., 2020) ---
     {
         "id": "known_016",
-        "query": "What phrase can be added to prompts for chain-of-thought reasoning?",
+        "query": "What are the two types of memory that RAG combines?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["step by step", "Let's think"],
-        "description": "CoT prompt template",
-        "tags": ["cot", "prompting"]
+        "expected_answer_contains": ["parametric", "non-parametric"],
+        "description": "RAG combines parametric and non-parametric memory",
+        "tags": ["rag", "architecture"]
     },
     {
         "id": "known_017",
-        "query": "How does zero-shot CoT compare to few-shot CoT?",
+        "query": "What generator model does RAG use?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["nearly as well", "similar"],
-        "description": "Zero-shot vs few-shot CoT comparison",
-        "tags": ["cot", "comparison"]
+        "expected_answer_contains": ["BART", "400M"],
+        "description": "RAG uses BART-large (400M parameters) as generator",
+        "tags": ["rag", "generator", "architecture"]
     },
-
-    # --- Deployment (Section 7) ---
     {
         "id": "known_018",
-        "query": "How much slower is cold start latency compared to normal inference?",
+        "query": "What open-domain QA datasets did RAG set state-of-the-art results on?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["5-10x", "5 to 10"],
-        "description": "Cold start latency overhead",
-        "tags": ["deployment", "latency"]
+        "expected_answer_contains": ["Natural Questions", "WebQuestions", "CuratedTrec"],
+        "description": "RAG SOTA on NQ, WQ, CuratedTrec",
+        "tags": ["rag", "benchmarks"]
     },
+
+    # --- Chain-of-Thought (Wei et al., 2022) ---
     {
         "id": "known_019",
-        "query": "How much does batching improve throughput?",
+        "query": "What benchmark did PaLM 540B with chain-of-thought prompting achieve state-of-the-art on?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["4x", "four times"],
-        "description": "Batching throughput improvement",
-        "tags": ["deployment", "batching", "exact-number"]
+        "expected_answer_contains": ["GSM8K"],
+        "description": "PaLM 540B with CoT achieves SOTA on GSM8K",
+        "tags": ["cot", "benchmark", "math"]
     },
     {
         "id": "known_020",
-        "query": "How much latency does batching add to individual requests?",
+        "query": "What is chain-of-thought prompting?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["200ms", "200 ms"],
-        "description": "Batching latency tradeoff",
-        "tags": ["deployment", "batching", "latency"]
+        "expected_answer_contains": ["intermediate", "reasoning", "steps"],
+        "description": "CoT = series of intermediate reasoning steps",
+        "tags": ["cot", "definition"]
     },
-
-    # --- General / Architecture (Section 1) ---
     {
         "id": "known_021",
-        "query": "When was the transformer architecture introduced?",
+        "query": "How many chain-of-thought exemplars were used in the PaLM 540B GSM8K experiment?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["2017"],
-        "description": "Transformer introduction year",
-        "tags": ["architecture", "history"]
+        "expected_answer_contains": ["eight", "8"],
+        "description": "Eight CoT exemplars used for SOTA result",
+        "tags": ["cot", "exact-number"]
     },
     {
         "id": "known_022",
-        "query": "What mechanism do transformers use to capture long-range dependencies?",
+        "query": "At what model scale does chain-of-thought prompting become effective?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["self-attention"],
-        "description": "Core transformer mechanism",
-        "tags": ["architecture", "attention"]
+        "expected_answer_contains": ["100B", "100 billion", "large"],
+        "description": "CoT is an emergent ability in ~100B+ parameter models",
+        "tags": ["cot", "scale", "emergent"]
     },
 
-    # --- Evaluation (Section 6) ---
+    # --- Prefix-Tuning (Li & Liang, 2021) ---
     {
         "id": "known_023",
-        "query": "What benchmarks were used to evaluate the models?",
+        "query": "What percentage of the parameters does prefix-tuning learn compared to full fine-tuning?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["MMLU", "HellaSwag", "TruthfulQA"],
-        "description": "Evaluation benchmarks used",
-        "tags": ["evaluation", "benchmarks"]
+        "expected_answer_contains": ["0.1%"],
+        "description": "Prefix-tuning learns only 0.1% of parameters",
+        "tags": ["prefix-tuning", "exact-number"]
     },
     {
         "id": "known_024",
-        "query": "What is considered the gold standard for LLM evaluation?",
+        "query": "How does prefix-tuning compare to fine-tuning in terms of storage?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["human evaluation", "Human evaluation"],
-        "description": "Best evaluation method",
-        "tags": ["evaluation", "human"]
+        "expected_answer_contains": ["1000", "fewer"],
+        "description": "Prefix-tuning stores 1000x fewer parameters",
+        "tags": ["prefix-tuning", "storage"]
     },
-
-    # --- Paraphrased / Indirect Questions ---
     {
         "id": "known_025",
-        "query": "Is LoRA suitable for environments with limited compute resources?",
+        "query": "What tasks was prefix-tuning evaluated on?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["resource-constrained", "suitable", "yes"],
-        "description": "LoRA suitability inference",
-        "tags": ["lora", "inference"]
+        "expected_answer_contains": ["table-to-text", "summarization"],
+        "description": "Prefix-tuning tested on table-to-text and summarization",
+        "tags": ["prefix-tuning", "tasks"]
     },
+
+    # --- Attention Is All You Need (Vaswani et al., 2017) ---
     {
         "id": "known_026",
-        "query": "What's the standard training paradigm for LLMs?",
+        "query": "What BLEU score did the Transformer achieve on the WMT 2014 English-to-German translation task?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["pre-training", "fine-tuning"],
-        "description": "LLM training paradigm",
-        "tags": ["training", "paradigm"]
+        "expected_answer_contains": ["28.4"],
+        "description": "Transformer achieves 28.4 BLEU on EN-DE",
+        "tags": ["transformer", "bleu", "exact-number"]
     },
     {
         "id": "known_027",
-        "query": "What model sizes were used in the experiments?",
+        "query": "How many attention heads does the original Transformer model use?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["7 billion", "70 billion"],
-        "description": "Model sizes in experiments",
-        "tags": ["models", "size"]
+        "expected_answer_contains": ["8", "eight"],
+        "description": "Transformer uses h=8 parallel attention heads",
+        "tags": ["transformer", "architecture", "exact-number"]
     },
     {
         "id": "known_028",
-        "query": "Does high MMLU score guarantee good real-world performance?",
+        "query": "What is the model dimension d_model in the original Transformer?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["not always", "did not always"],
-        "description": "Benchmark limitations",
-        "tags": ["evaluation", "limitations"]
+        "expected_answer_contains": ["512"],
+        "description": "Transformer uses d_model=512",
+        "tags": ["transformer", "architecture", "exact-number"]
     },
+
+    # --- LLM Evaluation Survey (Chang et al., 2023) ---
     {
         "id": "known_029",
-        "query": "What deployment challenges do LLMs face in production?",
+        "query": "What are the three key dimensions of LLM evaluation discussed in the survey by Chang et al.?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["cold start", "memory", "consistency"],
-        "description": "Production deployment challenges",
-        "tags": ["deployment", "challenges"]
+        "expected_answer_contains": ["what to evaluate", "where to evaluate", "how to evaluate"],
+        "description": "Three dimensions: what, where, how to evaluate",
+        "tags": ["evaluation", "survey", "dimensions"]
     },
+
+    # --- Efficient LLMs Survey (Wan et al., 2023) ---
     {
         "id": "known_030",
-        "query": "What does RAG combine LLMs with?",
+        "query": "What are the three main categories in the efficient LLMs taxonomy?",
         "expected_mode": "librarian",
-        "expected_answer_contains": ["external knowledge", "retrieval"],
-        "description": "RAG definition",
-        "tags": ["rag", "definition"]
+        "expected_answer_contains": ["model-centric", "data-centric", "framework"],
+        "description": "Taxonomy: model-centric, data-centric, framework-centric",
+        "tags": ["efficiency", "survey", "taxonomy"]
     },
 ]
 

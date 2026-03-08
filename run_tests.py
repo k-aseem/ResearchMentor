@@ -12,12 +12,14 @@ Usage:
 """
 
 import argparse
+import glob
 import json
+import os
 import time
 from datetime import datetime
 from typing import List, Dict, Any
 
-from research_mentor import ResearchMentorSystem
+from research_mentor import ResearchMentorSystem, PAPERS_DIR
 from test_cases import KNOWN_TESTS, GAP_TESTS, HALLUCINATION_TESTS, get_test_summary
 
 
@@ -207,13 +209,27 @@ def main():
                        help="Reduce output verbosity")
     parser.add_argument("--save-results", type=str, default=None,
                        help="Save detailed results to JSON file")
+    parser.add_argument("--use-dummy", action="store_true",
+                       help="Use dummy paper instead of real research papers")
+    parser.add_argument("--force-reindex", action="store_true",
+                       help="Force re-chunking and re-embedding even if cached DB exists")
 
     args = parser.parse_args()
 
     # Initialize system
     print("Initializing Research Mentor System...")
     mentor = ResearchMentorSystem()
-    mentor.ingest_dummy_data()
+
+    if args.use_dummy:
+        mentor.ingest_dummy_data()
+    else:
+        pdf_paths = sorted(glob.glob(os.path.join(PAPERS_DIR, "*.pdf")))
+        if pdf_paths:
+            print(f"Found {len(pdf_paths)} papers in {PAPERS_DIR}")
+            mentor.ingest_documents(pdf_paths, force_reindex=args.force_reindex)
+        else:
+            print(f"No PDFs found in {PAPERS_DIR}, falling back to dummy data...")
+            mentor.ingest_dummy_data()
 
     # Show test summary
     summary = get_test_summary()

@@ -1,9 +1,13 @@
 import os
 import re
+import glob
 from typing import Tuple, List
 
 # Load configuration
 from config import CONFIG
+
+# Default path for real research papers
+PAPERS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "papers")
 
 # LangChain Imports
 from langchain_google_genai import GoogleGenerativeAI
@@ -53,8 +57,21 @@ class ResearchMentorSystem:
             temperature=0
         )
 
-    def ingest_documents(self, pdf_paths: List[str]):
-        """Loads PDFs, splits them, and creates the Vector DB."""
+    def ingest_documents(self, pdf_paths: List[str], force_reindex: bool = False):
+        """Loads PDFs, splits them, and creates the Vector DB.
+        If a persistent DB already exists, loads it instead (unless force_reindex=True).
+        """
+        # Check if persistent DB already exists
+        if not force_reindex and os.path.exists(VECTOR_DB_PATH) and os.listdir(VECTOR_DB_PATH):
+            print(f"Loading existing knowledge base from {VECTOR_DB_PATH}...")
+            self.vector_db = Chroma(
+                persist_directory=VECTOR_DB_PATH,
+                embedding_function=self.embeddings
+            )
+            count = self.vector_db._collection.count()
+            print(f"Knowledge Base Loaded ({count} chunks from cache).")
+            return
+
         print(f"Ingesting {len(pdf_paths)} documents...")
         docs = []
         for path in pdf_paths:
@@ -623,10 +640,28 @@ Remember: You MUST start your response with "SCORE_A:" and follow the exact four
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Research Mentor System")
+    parser.add_argument("--use-dummy", action="store_true",
+                       help="Use dummy paper instead of real research papers")
+    parser.add_argument("--force-reindex", action="store_true",
+                       help="Force re-chunking and re-embedding even if cached DB exists")
+    args = parser.parse_args()
+
     mentor = ResearchMentorSystem()
 
-    # SETUP: Load Dummy Data
-    mentor.ingest_dummy_data()
+    # SETUP: Load knowledge base
+    if args.use_dummy:
+        mentor.ingest_dummy_data()
+    else:
+        pdf_paths = sorted(glob.glob(os.path.join(PAPERS_DIR, "*.pdf")))
+        if pdf_paths:
+            print(f"Found {len(pdf_paths)} papers in {PAPERS_DIR}")
+            mentor.ingest_documents(pdf_paths, force_reindex=args.force_reindex)
+        else:
+            print(f"No PDFs found in {PAPERS_DIR}, falling back to dummy data...")
+            mentor.ingest_dummy_data()
 
     # TEST CASE 1: The "Known" Test
     # Question about something explicitly stated in the paper

@@ -1,0 +1,109 @@
+KNOWN TEST QUESTIONS FOR NOTEBOOKLM COMPARISON
+================================================
+
+Instructions:
+1. Upload all 10 papers from the papers/ directory to NotebookLM
+2. Ask each question below in order
+3. Record the response time and answer quality
+4. Use the companion Excel/CSV file to track results
+
+Papers to upload:
+- LoRA (2106.09685)
+- QLoRA (2305.14314)
+- LLM.int8() (2208.07339)
+- GPTQ (2210.17323)
+- RAG (2005.11401)
+- Chain-of-Thought (2201.11903)
+- Prefix-Tuning (2101.00190)
+- Attention Is All You Need (1706.03762)
+- LLM Evaluation Survey (2307.03109)
+- Efficient LLMs Survey (2312.03863)
+
+================================================
+QUESTIONS (30 total)
+================================================
+
+LoRA Questions (1-5)
+--------------------
+1. How much does LoRA reduce the number of trainable parameters compared to full fine-tuning?
+
+2. How much does LoRA reduce GPU memory requirements compared to full fine-tuning?
+
+3. What specific technique does LoRA use to reduce the number of trainable parameters?
+
+4. What models was LoRA evaluated on in the original paper?
+
+5. What is the typical size of a LoRA checkpoint for GPT-3 175B compared to a full fine-tuned checkpoint?
+
+QLoRA Questions (6-9)
+---------------------
+6. What GPU can QLoRA use to fine-tune a 65B parameter model on?
+
+7. What percentage of ChatGPT's performance does Guanaco achieve on the Vicuna benchmark?
+
+8. What are the three key innovations introduced in QLoRA?
+
+9. How much GPU memory is required for 16-bit full fine-tuning of LLaMA 65B?
+
+LLM.int8() Questions (10-12)
+----------------------------
+10. How much memory does LLM.int8() save compared to 16-bit inference?
+
+11. What percentage of values does LLM.int8() keep in 8-bit precision?
+
+12. What technique does LLM.int8() use to handle outlier features?
+
+GPTQ Questions (13-15)
+----------------------
+13. What is the target bit precision that GPTQ typically uses for quantization?
+
+14. On which model family was GPTQ primarily evaluated in the original paper?
+
+15. What specific mathematical technique does GPTQ use for quantization?
+
+RAG Questions (16-18)
+---------------------
+16. What are the two types of memory that RAG combines?
+
+17. What benchmark tasks was RAG evaluated on?
+
+18. What retrieval mechanism does RAG use?
+
+Chain-of-Thought Questions (19-22)
+----------------------------------
+19. What model size showed the most significant improvement from chain-of-thought prompting?
+
+20. What type of reasoning tasks benefit most from chain-of-thought prompting?
+
+21. How many exemplars were typically used in the chain-of-thought prompts for PaLM 540B?
+
+22. What benchmark showed the largest improvement with chain-of-thought prompting?
+
+Prefix-Tuning Questions (23-25)
+-------------------------------
+23. What percentage of parameters does prefix-tuning modify compared to full fine-tuning?
+
+24. What specific component of the transformer does prefix-tuning modify?
+
+25. What tasks was prefix-tuning evaluated on in the original paper?
+
+Transformer Questions (26-28)
+-----------------------------
+26. What is the dimension of the model (d_model) in the base Transformer architecture?
+
+27. How many attention heads does the base Transformer model use?
+
+28. What positional encoding mechanism does the original Transformer use?
+
+Survey Questions (29-30)
+------------------------
+29. According to the LLM Evaluation Survey, what are the main categories of evaluation benchmarks?
+
+30. According to the Efficient LLMs Survey, what are the main approaches to making LLMs more efficient?
+
+================================================
+END OF QUESTIONS
+================================================
+
+Note: These are the exact same questions used in our Research Mentor Known tests.
+Track responses in the companion tracking file.
